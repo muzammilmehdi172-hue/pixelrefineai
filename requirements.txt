@@ -2,9 +2,9 @@ flask
 opencv-python-headless
 numpy
 werkzeug
-torch==2.0.1+cpu -f https://download.pytorch.org/whl/cpu
-torchvision==0.15.2+cpu -f https://download.pytorch.org/whl/cpu
-torchaudio==2.0.1+cpu -f https://download.pytorch.org/whl/cpu
+https://download.pytorch.org/whl/cpu/torch-2.0.1%2Bcpu-cp312-cp312-linux_x86_64.whl
+https://download.pytorch.org/whl/cpu/torchvision-0.15.2%2Bcpu-cp312-cp312-linux_x86_64.whl
+https://download.pytorch.org/whl/cpu/torchaudio-2.0.1%2Bcpu-cp312-cp312-linux_x86_64.whl
 basicsr==1.4.2
 gfpgan
 realesrgan
