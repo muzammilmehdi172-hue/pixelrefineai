@@ -1,23 +1,23 @@
-# Use official lightweight Python image
 FROM python:3.11-slim
 
-# Set working directory
+RUN apt-get update && apt-get install -y \
+    libgl1 \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
-# Install system dependencies (needed for opencv and numpy)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libglib2.0-0 libsm6 libxrender1 libxext6 wget curl && \
-    rm -rf /var/lib/apt/lists/*
-
-# Copy files
-COPY requirements.txt requirements.txt
 COPY . .
 
-# Install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip
+RUN pip install --no-cache-dir \
+    torch==2.1.2+cpu \
+    torchvision==0.16.2+cpu \
+    torchaudio==2.1.2+cpu \
+    -f https://download.pytorch.org/whl/cpu/torch_stable.html
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose the port Render expects
-EXPOSE 10000
+RUN mkdir -p uploads results
 
-# Start the Flask app
+EXPOSE 8000
 CMD ["python", "app.py"]
