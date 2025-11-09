@@ -32,18 +32,18 @@ ESRGAN_PATH = os.path.join(MODEL_DIR, 'RealESRGAN_x4plus.pth')
 # === SAFE DOWNLOAD FUNCTION ===
 def download_if_missing(url, path, name):
     if not os.path.exists(path):
-        print(f"📥 Downloading {name}...")
+        print(f"📥 Downloading {name} from {url}...")
         try:
             urllib.request.urlretrieve(url, path)
-            print(f"✅ {name} ready.")
+            print(f"✅ {name} saved to {path}")
         except urllib.error.HTTPError as e:
-            print(f"❌ HTTP Error downloading {name}: {e}")
+            print(f"❌ HTTP Error: {e}")
             raise
         except Exception as e:
             print(f"❌ Unexpected error: {e}")
             raise
 
-# === DOWNLOAD MODELS ON STARTUP (only if missing) ===
+# === DOWNLOAD MODELS ON STARTUP ===
 download_if_missing(GFPGAN_URL, GFPGAN_PATH, "GFPGANv1.4")
 download_if_missing(ESRGAN_URL, ESRGAN_PATH, "RealESRGAN_x4plus")
 
@@ -125,4 +125,3 @@ def result_file(filename):
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8000))
     app.run(host='0.0.0.0', port=port)
-
