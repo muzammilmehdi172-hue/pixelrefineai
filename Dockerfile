@@ -1,23 +1,27 @@
 FROM python:3.11-slim
 
-RUN apt-get update && apt-get install -y \
-    libgl1 \
-    libglib2.0-0 \
-    && rm -rf /var/lib/apt/lists/*
-
 WORKDIR /app
 
-COPY . .
+# --- System dependencies (fixes "Numpy is not available") ---
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libgl1 \
+    libglib2.0-0 \
+    libopenblas-dev \
+    liblapack-dev \
+    gfortran \
+    wget \
+    curl && \
+    rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir --upgrade pip
-RUN pip install --no-cache-dir \
-    torch==2.1.2+cpu \
-    torchvision==0.16.2+cpu \
-    torchaudio==2.1.2+cpu \
-    -f https://download.pytorch.org/whl/cpu/torch_stable.html
+# --- Copy and install Python packages ---
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 RUN pip install --no-cache-dir -r requirements.txt
 
-RUN mkdir -p uploads results
+# --- Copy project files ---
+COPY . .
 
-EXPOSE 8000
+# --- Expose and run Flask ---
+EXPOSE 10000
 CMD ["python", "app.py"]
