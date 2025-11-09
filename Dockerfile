@@ -1,10 +1,13 @@
+# Use Python 3.11 slim base image
 FROM python:3.11-slim
 
+# Set working directory
 WORKDIR /app
 
+# Copy project files
 COPY . .
 
-# System dependencies for OpenCV
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     libgl1 \
     libglib2.0-0 \
@@ -13,13 +16,12 @@ RUN apt-get update && apt-get install -y \
 # Upgrade pip
 RUN pip install --upgrade pip
 
-# Install PyTorch CPU wheels compatible with Python 3.11
-RUN pip install torch==2.5.0+cpu torchvision==0.20.1+cpu torchaudio==2.5.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
+# Install CPU versions of PyTorch, torchvision, torchaudio
+RUN pip install torch==2.1.2+cpu torchvision==0.16.2+cpu torchaudio==2.1.2+cpu -f https://download.pytorch.org/whl/torch_stable.html
 
-# Install other Python dependencies
-RUN pip install -r requirements.txt
+# Install other Python dependencies (if you have requirements.txt)
+# COPY requirements.txt .
+# RUN pip install -r requirements.txt
 
-# Expose port if using a web service
-EXPOSE 8000
-
+# Default command
 CMD ["python", "app.py"]
