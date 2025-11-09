@@ -22,9 +22,9 @@ app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10MB max
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
 
-# === CORRECT MODEL URLS (no spaces!) ===
+# === CORRECT MODEL URLS ===
 GFPGAN_URL = "https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.4.pth"
-ESRGAN_URL = "https://github.com/xinnt/Real-ESRGAN/releases/download/v1.0.0/RealESRGAN_x4plus.pth"
+ESRGAN_URL = "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth"
 
 GFPGAN_PATH = os.path.join(MODEL_DIR, 'GFPGANv1.4.pth')
 ESRGAN_PATH = os.path.join(MODEL_DIR, 'RealESRGAN_x4plus.pth')
@@ -125,3 +125,4 @@ def result_file(filename):
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8000))
     app.run(host='0.0.0.0', port=port)
+
