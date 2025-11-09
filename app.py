@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 from werkzeug.utils import secure_filename
 import urllib.request
+import urllib.error
 
 # === FOLDERS ===
 UPLOAD_FOLDER = 'uploads'
@@ -21,27 +22,30 @@ app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10MB max
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
 
-# === MODEL PATHS ===
+# === CORRECT MODEL URLS (no spaces!) ===
+GFPGAN_URL = "https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.4.pth"
+ESRGAN_URL = "https://github.com/xinnt/Real-ESRGAN/releases/download/v1.0.0/RealESRGAN_x4plus.pth"
+
 GFPGAN_PATH = os.path.join(MODEL_DIR, 'GFPGANv1.4.pth')
 ESRGAN_PATH = os.path.join(MODEL_DIR, 'RealESRGAN_x4plus.pth')
 
-# === DOWNLOAD MODELS IF MISSING ===
+# === SAFE DOWNLOAD FUNCTION ===
 def download_if_missing(url, path, name):
     if not os.path.exists(path):
-        print(f"📥 Downloading {name} (this takes 1-2 min)...")
-        urllib.request.urlretrieve(url, path)
-        print(f"✅ {name} ready.")
+        print(f"📥 Downloading {name}...")
+        try:
+            urllib.request.urlretrieve(url, path)
+            print(f"✅ {name} ready.")
+        except urllib.error.HTTPError as e:
+            print(f"❌ HTTP Error downloading {name}: {e}")
+            raise
+        except Exception as e:
+            print(f"❌ Unexpected error: {e}")
+            raise
 
-download_if_missing(
-    'https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.4.pth',
-    GFPGAN_PATH,
-    "GFPGANv1.4"
-)
-download_if_missing(
-    'https://github.com/xinnt/Real-ESRGAN/releases/download/v1.0.0/RealESRGAN_x4plus.pth',
-    ESRGAN_PATH,
-    "RealESRGAN_x4plus"
-)
+# === DOWNLOAD MODELS ON STARTUP (only if missing) ===
+download_if_missing(GFPGAN_URL, GFPGAN_PATH, "GFPGANv1.4")
+download_if_missing(ESRGAN_URL, ESRGAN_PATH, "RealESRGAN_x4plus")
 
 # === LOAD MODELS ===
 from gfpgan import GFPGANer
@@ -53,14 +57,15 @@ gfpgan_restorer = GFPGANer(
     upscale=2,
     arch='clean',
     channel_multiplier=2,
-    bg_upsampler=None
+    bg_upsampler=None,
+    half=False
 )
 
 realesrgan_enhancer = RealESRGANer(
     scale=4,
     model_path=ESRGAN_PATH,
     model=RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4),
-    tile=256,          # Prevents OOM on free tier
+    tile=256,
     tile_pad=10,
     pre_pad=0,
     half=False
@@ -96,7 +101,7 @@ def upload_file():
         _, _, restored_img = gfpgan_restorer.enhance(img, has_aligned=False, only_center_face=False, paste_back=True)
 
         # Real-ESRGAN 4x upscaling
-        upscaled, _ = realesrgan_enhancer.enhance(restored_img)
+        upscaled, _ = realesrgan_enhance(restored_img)
 
         cv2.imwrite(output_path, upscaled)
 
@@ -117,7 +122,6 @@ def uploaded_file(filename):
 def result_file(filename):
     return send_from_directory(app.config['RESULT_FOLDER'], filename)
 
-# Render uses dynamic PORT
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8000))
     app.run(host='0.0.0.0', port=port)
