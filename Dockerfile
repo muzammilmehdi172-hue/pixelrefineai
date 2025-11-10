@@ -1,10 +1,11 @@
 # Use Python 3.9 (required for basicsr + torch 1.13)
 FROM python:3.9-slim
 
-# Install OpenCV and other system dependencies
+# Install system packages
 RUN apt-get update && apt-get install -y \
-    libgl1 libglib2.0-0 wget curl && \
-    rm -rf /var/lib/apt/lists/*
+    libgl1 \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY . .
@@ -12,17 +13,10 @@ COPY . .
 # Upgrade pip
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
-# ✅ Install PyTorch 1.13.1 (last version compatible with basicsr)
-RUN pip install --no-cache-dir \
-    torch==1.13.1+cpu \
-    torchvision==0.14.1+cpu \
-    torchaudio==0.13.1+cpu \
-    -f https://download.pytorch.org/whl/cpu/torch_stable.html
-
-# ✅ Install other dependencies
+# Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Create folders (Render safety)
+# Create necessary folders
 RUN mkdir -p uploads results models
 
 EXPOSE 8000
