@@ -1,5 +1,6 @@
 flask
 opencv-python-headless
+numpy
 werkzeug
 basicsr==1.4.2
 gfpgan
