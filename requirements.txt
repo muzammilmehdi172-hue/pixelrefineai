@@ -1,6 +1,6 @@
 flask
 opencv-python-headless
-numpy
+numpy==1.23.5  # compatible with PyTorch 1.13
 werkzeug
 basicsr==1.4.2
 gfpgan
