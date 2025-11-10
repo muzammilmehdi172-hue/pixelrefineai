@@ -22,30 +22,27 @@ app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10MB max
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
 
-# === CORRECT MODEL URLS ===
+# === CORRECT GFPGAN URL (Runtime Download) ===
 GFPGAN_URL = "https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.4.pth"
-ESRGAN_URL = "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth"
-
 GFPGAN_PATH = os.path.join(MODEL_DIR, 'GFPGANv1.4.pth')
+
+# === REAL-ESRGAN: Already in repo (No Download) ===
 ESRGAN_PATH = os.path.join(MODEL_DIR, 'RealESRGAN_x4plus.pth')
 
-# === SAFE DOWNLOAD FUNCTION ===
-def download_if_missing(url, path, name):
+# === SAFE DOWNLOAD (GFPGAN ONLY) ===
+def download_if_missing(url, path):
     if not os.path.exists(path):
-        print(f"📥 Downloading {name} from {url}...")
+        print(f"📥 Downloading {os.path.basename(path)}...")
         try:
             urllib.request.urlretrieve(url, path)
-            print(f"✅ {name} saved to {path}")
+            print("✅ Download complete.")
         except urllib.error.HTTPError as e:
             print(f"❌ HTTP Error: {e}")
             raise
-        except Exception as e:
-            print(f"❌ Unexpected error: {e}")
-            raise
 
-# === DOWNLOAD MODELS ON STARTUP ===
-download_if_missing(GFPGAN_URL, GFPGAN_PATH, "GFPGANv1.4")
-download_if_missing(ESRGAN_URL, ESRGAN_PATH, "RealESRGAN_x4plus")
+# Download GFPGAN if missing (Real-ESRGAN is already in models/)
+if not os.path.exists(GFPGAN_PATH):
+    download_if_missing(GFPGAN_URL, GFPGAN_PATH)
 
 # === LOAD MODELS ===
 from gfpgan import GFPGANer
