@@ -3,9 +3,9 @@ import os
 import cv2
 import numpy as np
 from werkzeug.utils import secure_filename
-import urllib.request, urllib.error
+import urllib.request
+import urllib.error
 
-# === FOLDERS ===
 UPLOAD_FOLDER = 'uploads'
 RESULT_FOLDER = 'results'
 MODEL_DIR = 'models'
@@ -21,30 +21,26 @@ app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10MB max
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
 
-# === MODEL URLs ===
+# === MODEL DOWNLOAD URLS ===
 GFPGAN_URL = "https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.4.pth"
+ESRGAN_URL = "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.1/RealESRGAN_x2plus.pth"
+
 GFPGAN_PATH = os.path.join(MODEL_DIR, 'GFPGANv1.4.pth')
+ESRGAN_PATH = os.path.join(MODEL_DIR, 'RealESRGAN_x2plus.pth')
 
-REAL_ESRGAN_URL = "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth"
-REAL_ESRGAN_PATH = os.path.join(MODEL_DIR, 'RealESRGAN_x4plus.pth')
-
-# === SAFE DOWNLOAD ===
 def download_if_missing(url, path):
     if not os.path.exists(path):
         print(f"📥 Downloading {os.path.basename(path)}...")
         try:
             urllib.request.urlretrieve(url, path)
-            print(f"✅ {os.path.basename(path)} ready.")
-        except Exception as e:
-            print(f"❌ Failed to download {os.path.basename(path)}: {e}")
+            print("✅ Download complete.")
+        except urllib.error.HTTPError as e:
+            print(f"❌ HTTP Error: {e}")
             raise
 
-# Download both models if missing
-try:
-    download_if_missing(GFPGAN_URL, GFPGAN_PATH)
-    download_if_missing(REAL_ESRGAN_URL, REAL_ESRGAN_PATH)
-except Exception as e:
-    print(f"⚠️ Model download error: {e}")
+# Download models if missing
+download_if_missing(GFPGAN_URL, GFPGAN_PATH)
+download_if_missing(ESRGAN_URL, ESRGAN_PATH)
 
 # === LOAD MODELS ===
 from gfpgan import GFPGANer
@@ -61,9 +57,9 @@ gfpgan_restorer = GFPGANer(
 )
 
 realesrgan_enhancer = RealESRGANer(
-    scale=4,
-    model_path=REAL_ESRGAN_PATH,
-    model=RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4),
+    scale=2,
+    model_path=ESRGAN_PATH,
+    model=RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=2),
     tile=256,
     tile_pad=10,
     pre_pad=0,
@@ -96,13 +92,11 @@ def upload_file():
         if img is None:
             return jsonify({"error": "Could not read image"}), 500
 
-        # 1️⃣ Face Restoration (GFPGAN)
-        _, _, restored_img = gfpgan_restorer.enhance(
-            img, has_aligned=False, only_center_face=False, paste_back=True
-        )
+        # GFPGAN restoration
+        _, _, restored_img = gfpgan_restorer.enhance(img, has_aligned=False, only_center_face=False, paste_back=True)
 
-        # 2️⃣ 4x Upscaling (Real-ESRGAN)
-        upscaled, _ = realesrgan_enhancer.enhance(restored_img, outscale=4)
+        # RealESRGAN upscaling
+        upscaled, _ = realesrgan_enhancer.enhance(restored_img)
 
         cv2.imwrite(output_path, upscaled)
 
