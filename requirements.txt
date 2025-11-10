@@ -5,3 +5,6 @@ werkzeug
 basicsr==1.4.2
 gfpgan
 realesrgan
+torch==1.13.1+cpu -f https://download.pytorch.org/whl/cpu/torch_stable.html
+torchvision==0.14.1+cpu -f https://download.pytorch.org/whl/cpu/torch_stable.html
+torchaudio==0.13.1+cpu -f https://download.pytorch.org/whl/cpu/torch_stable.html
