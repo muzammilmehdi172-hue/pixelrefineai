@@ -49,8 +49,9 @@ from basicsr.archs.rrdbnet_arch import RRDBNet
 gfpgan_restorer = GFPGANer(
     model_path=GFPGAN_PATH,
     upscale=2,
-    bg_upsampler=None,
-    half=False
+    arch='clean',
+    channel_multiplier=2,
+    bg_upsampler=None
 )
 
 # ⚠️ Use x2plus model (25 MB) → scale=2
@@ -63,3 +64,4 @@ realesrgan_enhancer = RealESRGANer(
 )
 
 # ... rest of your Flask routes ...
+
