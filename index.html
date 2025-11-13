@@ -1085,189 +1085,182 @@
             </div>
         </div>
     </footer>
-    <script>
-        // State management
-        let currentOriginalImage = null;
-        let currentEnhancedImage = null;
-        // Page navigation
-        function showPage(pageId) {
-            document.querySelectorAll('.page').forEach(page => {
-                page.classList.remove('active');
-            });
-            const targetPage = document.getElementById(pageId + 'Page');
-            if (targetPage) targetPage.classList.add('active');
-            // Update nav link active state
-            document.querySelectorAll('.nav-link').forEach(link => {
-                link.classList.remove('active');
-            });
-            const activeLink = Array.from(document.querySelectorAll('.nav-link')).find(link =>
-                link.getAttribute('onclick')?.includes(`showPage('${pageId}')`)
-            );
-            if (activeLink) activeLink.classList.add('active');
-            window.scrollTo(0, 0);
-        }
-        // Auth modals
-        function showLoginModal() {
-            alert('Login functionality would be implemented with a real backend. This is a demo interface.');
-        }
-        function showSignupModal() {
-            alert('Sign up successful! You now have access to the free tier (10 images/day).');
-            showPage('home');
-        }
-        // Handle image upload and AI enhancement
-function handleImageUpload(event) {
+<script>
+  // ========== PAGE NAVIGATION ==========
+  function showPage(pageId) {
+    if (['login', 'signup'].includes(pageId)) {
+      window.location.href = `/${pageId}`;
+      return;
+    }
+    document.querySelectorAll('.page').forEach(page => {
+      page.classList.remove('active');
+    });
+    const targetPage = document.getElementById(pageId + 'Page');
+    if (targetPage) targetPage.classList.add('active');
+    document.querySelectorAll('.nav-link').forEach(link => {
+      link.classList.remove('active');
+    });
+    const activeLink = Array.from(document.querySelectorAll('.nav-link')).find(link =>
+      link.getAttribute('onclick')?.includes(`showPage('${pageId}')`)
+    );
+    if (activeLink) activeLink.classList.add('active');
+    window.scrollTo(0, 0);
+  }
+
+  // ========== AUTH ==========
+  async function checkAuth() {
+    const res = await fetch('/api/user');
+    return res.json();
+  }
+
+  // Replace dummy auth modals with real redirects
+  function showLoginModal() {
+    window.location.href = '/login';
+  }
+  function showSignupModal() {
+    window.location.href = '/signup';
+  }
+
+  // ========== IMAGE UPLOAD (PROTECTED) ==========
+  async function handleImageUpload(event) {
+    const auth = await checkAuth();
+    if (!auth.is_authenticated) {
+      alert('Please log in to enhance images.');
+      showPage('login');
+      return;
+    }
+
     const file = event.target.files[0];
     if (!file) return;
     if (file.size > 10 * 1024 * 1024) {
-        alert('File too large! Please upload an image under 10MB.');
-        return;
+      alert('File too large! Please upload an image under 10MB.');
+      return;
     }
     const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
     if (!validTypes.includes(file.type)) {
-        alert('Unsupported file type. Please upload JPG, PNG, or WEBP.');
-        return;
+      alert('Unsupported file type. Please upload JPG, PNG, or WEBP.');
+      return;
     }
 
     const formData = new FormData();
     formData.append('file', file);
-
     const uploadZone = document.getElementById('uploadZone');
     const originalHTML = uploadZone.innerHTML;
-    uploadZone.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin"></i> Enhancing with Real-ESRGAN AI...</div>';
+    uploadZone.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin"></i> Enhancing with AI...</div>';
 
     fetch('/upload', {
-        method: 'POST',
-        body: formData
+      method: 'POST',
+      body: formData
     })
     .then(response => response.json())
     .then(data => {
-        if (data.success) {
-            // ✅ CRITICAL: Set BEFORE to original, AFTER to enhanced
-            const beforeImg = document.querySelector('#homePage .before-image');
-            const afterImg = document.querySelector('#homePage .after-image');
-            
-            if (beforeImg && afterImg) {
-                // Store original and enhanced URLs
-                beforeImg.src = data.before_url + '?t=' + Date.now();
-                afterImg.src = data.after_url + '?t=' + Date.now();
-                
-                // Ensure the before image is fully visible on the left
-                beforeImg.style.clipPath = 'polygon(0 0, 100% 0, 100% 100%, 0 100%)';
-                afterImg.style.clipPath = 'none';
-            }
-
-            // Scroll to slider
-            document.querySelector('.before-after-slider')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-
-            // Show download button
-            const downloadButton = document.getElementById('downloadButton');
-            if (downloadButton) {
-                downloadButton.style.display = 'inline-block';
-                downloadButton.href = data.after_url;
-            }
-        } else {
-            alert('Enhancement failed: ' + (data.error || 'Unknown error'));
+      if (data.success) {
+        const beforeImg = document.querySelector('#homePage .before-image');
+        const afterImg = document.querySelector('#homePage .after-image');
+        if (beforeImg && afterImg) {
+          beforeImg.src = data.before_url + '?t=' + Date.now();
+          afterImg.src = data.after_url + '?t=' + Date.now();
+          beforeImg.style.clipPath = 'polygon(0 0, 50% 0, 50% 100%, 0 100%)';
+          document.getElementById('sliderHandle').style.left = '50%';
         }
+        const downloadButton = document.getElementById('downloadButton');
+        if (downloadButton) {
+          downloadButton.style.display = 'inline-block';
+          downloadButton.href = data.after_url;
+        }
+      } else {
+        alert('Enhancement failed: ' + (data.error || 'Unknown error'));
+      }
     })
     .catch(error => {
-        console.error('Upload error:', error);
-        alert('Failed to enhance image. Please try again.');
+      console.error('Upload error:', error);
+      alert('Failed to enhance image. Please try again.');
     })
     .finally(() => {
-        uploadZone.innerHTML = originalHTML;
+      uploadZone.innerHTML = originalHTML;
     });
-}
-        // Initialize all before/after sliders
-        function initAllSliders() {
-            document.querySelectorAll('.before-after-slider').forEach(slider => {
-                const handle = slider.querySelector('.slider-handle');
-                const beforeImg = slider.querySelector('.before-image');
-                const container = slider.querySelector('.slider-container');
-                if (!handle || !beforeImg || !container) return;
-                let isDragging = false;
-                function updatePosition(clientX) {
-                    const rect = container.getBoundingClientRect();
-                    let position = ((clientX - rect.left) / rect.width) * 100;
-                    position = Math.max(0, Math.min(100, position));
-                    beforeImg.style.clipPath = `polygon(0 0, ${position}% 0, ${position}% 100%, 0 100%)`;
-                    handle.style.left = `${position}%`;
-                }
-                handle.addEventListener('mousedown', (e) => {
-                    isDragging = true;
-                    e.preventDefault();
-                });
-                handle.addEventListener('touchstart', (e) => {
-                    isDragging = true;
-                    e.preventDefault();
-                });
-                const moveHandler = (e) => {
-                    if (isDragging) updatePosition(e.clientX || e.touches[0]?.clientX);
-                };
-                const endHandler = () => {
-                    isDragging = false;
-                };
-                document.addEventListener('mousemove', moveHandler);
-                document.addEventListener('touchmove', moveHandler, { passive: false });
-                document.addEventListener('mouseup', endHandler);
-                document.addEventListener('touchend', endHandler);
-            });
+  }
+
+  // ========== EXISTING SLIDER + UI LOGIC (UNCHANGED) ==========
+  function initAllSliders() {
+    document.querySelectorAll('.before-after-slider').forEach(slider => {
+      const handle = slider.querySelector('.slider-handle');
+      const beforeImg = slider.querySelector('.before-image');
+      const container = slider.querySelector('.slider-container');
+      if (!handle || !beforeImg || !container) return;
+      let isDragging = false;
+      function updatePosition(clientX) {
+        const rect = container.getBoundingClientRect();
+        let position = ((clientX - rect.left) / rect.width) * 100;
+        position = Math.max(0, Math.min(100, position));
+        beforeImg.style.clipPath = `polygon(0 0, ${position}% 0, ${position}% 100%, 0 100%)`;
+        handle.style.left = `${position}%`;
+      }
+      handle.addEventListener('mousedown', (e) => { isDragging = true; e.preventDefault(); });
+      handle.addEventListener('touchstart', (e) => { isDragging = true; e.preventDefault(); });
+      const moveHandler = (e) => { if (isDragging) updatePosition(e.clientX || e.touches[0]?.clientX); };
+      const endHandler = () => { isDragging = false; };
+      document.addEventListener('mousemove', moveHandler);
+      document.addEventListener('touchmove', moveHandler, { passive: false });
+      document.addEventListener('mouseup', endHandler);
+      document.addEventListener('touchend', endHandler);
+    });
+  }
+
+  let lastScrollTop = 0;
+  const header = document.getElementById('header');
+  window.addEventListener('scroll', () => {
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    if (scrollTop > lastScrollTop && scrollTop > 100) {
+      header.style.transform = 'translateY(-100%)';
+    } else {
+      header.style.transform = 'translateY(0)';
+    }
+    lastScrollTop = scrollTop;
+  });
+
+  const contactForm = document.getElementById('contactForm');
+  if (contactForm) {
+    contactForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      alert('Thank you for your message! We\'ll get back to you soon.');
+      contactForm.reset();
+    });
+  }
+
+  document.querySelectorAll('.btn.btn-primary').forEach(btn => {
+    if (btn.querySelector('.fa-cloud-upload-alt')) {
+      btn.addEventListener('click', () => {
+        document.getElementById('fileInput')?.click();
+      });
+    }
+  });
+
+  const mobileBtn = document.querySelector('.mobile-menu-btn');
+  if (mobileBtn) {
+    mobileBtn.addEventListener('click', () => {
+      const navLinks = document.querySelector('.nav-links');
+      const authBtns = document.querySelector('.auth-buttons');
+      if (navLinks && authBtns) {
+        const isHidden = navLinks.style.display === 'none' || !navLinks.style.display;
+        navLinks.style.display = isHidden ? 'flex' : 'none';
+        authBtns.style.display = isHidden ? 'flex' : 'none';
+        if (isHidden) {
+          navLinks.style.flexDirection = 'column';
+          navLinks.style.position = 'absolute';
+          navLinks.style.top = '60px';
+          navLinks.style.left = '0';
+          navLinks.style.right = '0';
+          navLinks.style.backgroundColor = 'rgba(15, 23, 42, 0.95)';
+          navLinks.style.padding = '1rem';
+          navLinks.style.zIndex = '999';
         }
-        // Header scroll behavior
-        let lastScrollTop = 0;
-        const header = document.getElementById('header');
-        window.addEventListener('scroll', () => {
-            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-            if (scrollTop > lastScrollTop && scrollTop > 100) {
-                header.style.transform = 'translateY(-100%)';
-            } else {
-                header.style.transform = 'translateY(0)';
-            }
-            lastScrollTop = scrollTop;
-        });
-        // Contact form
-        const contactForm = document.getElementById('contactForm');
-        if (contactForm) {
-            contactForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                alert('Thank you for your message! We\'ll get back to you soon.');
-                contactForm.reset();
-            });
-        }
-        // Trigger file input from buttons
-        document.querySelectorAll('.btn.btn-primary').forEach(btn => {
-            if (btn.querySelector('.fa-cloud-upload-alt')) {
-                btn.addEventListener('click', () => {
-                    document.getElementById('fileInput')?.click();
-                });
-            }
-        });
-        // Mobile menu (basic toggle for demo)
-        const mobileBtn = document.querySelector('.mobile-menu-btn');
-        if (mobileBtn) {
-            mobileBtn.addEventListener('click', () => {
-                const navLinks = document.querySelector('.nav-links');
-                const authBtns = document.querySelector('.auth-buttons');
-                if (navLinks && authBtns) {
-                    const isHidden = navLinks.style.display === 'none' || !navLinks.style.display;
-                    navLinks.style.display = isHidden ? 'flex' : 'none';
-                    authBtns.style.display = isHidden ? 'flex' : 'none';
-                    if (isHidden) {
-                        navLinks.style.flexDirection = 'column';
-                        navLinks.style.position = 'absolute';
-                        navLinks.style.top = '60px';
-                        navLinks.style.left = '0';
-                        navLinks.style.right = '0';
-                        navLinks.style.backgroundColor = 'rgba(15, 23, 42, 0.95)';
-                        navLinks.style.padding = '1rem';
-                        navLinks.style.zIndex = '999';
-                    }
-                }
-            });
-        }
-        // Initialize on load
-        document.addEventListener('DOMContentLoaded', () => {
-            initAllSliders();
-        });
-    </script>
-</body>
-</html>
+      }
+    });
+  }
+
+  // Initialize on load
+  document.addEventListener('DOMContentLoaded', () => {
+    initAllSliders();
+  });
+</script>
