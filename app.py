@@ -8,14 +8,11 @@ import urllib.error
 import sqlite3
 from contextlib import closing
 from werkzeug.security import generate_password_hash, check_password_hash
-
-UPLOAD_FOLDER = 'uploads'
-RESULT_FOLDER = 'results'
-MODEL_DIR = 'models'
+from PIL import Image
 
 # === INIT ===
 app = Flask(__name__)
-app.secret_key = 'pixelrefine-secret-key'
+app.secret_key = 'pixelrefine-secret-key-2025'
 
 # === FOLDERS ===
 os.makedirs('uploads', exist_ok=True)
@@ -24,7 +21,7 @@ os.makedirs('models', exist_ok=True)
 
 # === DATABASE ===
 def get_db():
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect('users.db', check_same_thread=False)
     conn.execute('''CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY,
         email TEXT UNIQUE,
@@ -39,8 +36,8 @@ def login():
         email = request.form['email'].lower()
         password = request.form['password']
         conn = get_db()
-        user = conn.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
-        if user and check_password_hash(user[2], password):
+        user = conn.execute('SELECT id, password_hash FROM users WHERE email = ?', (email,)).fetchone()
+        if user and check_password_hash(user[1], password):
             return jsonify({"success": True})
         return jsonify({"error": "Invalid credentials"}), 401
     return render_template('index.html')
@@ -103,8 +100,7 @@ def upload():
     input_path = f"uploads/{filename}"
     output_path = f"results/enhanced_{filename}"
     
-    # Resize large images
-    from PIL import Image
+    # Resize large images to prevent OOM
     img_pil = Image.open(file.stream)
     if max(img_pil.size) > 1200:
         img_pil.thumbnail((1200, 1200), Image.LANCZOS)
@@ -113,7 +109,7 @@ def upload():
     # Process with AI
     img = cv2.imread(input_path)
     _, _, restored = gfpgan_restorer.enhance(img, has_aligned=False, only_center_face=False, paste_back=True)
-    upscaled, _ = realesrgan_enhance(restored)
+    upscaled, _ = realesrgan_enhancer.enhance(restored)
     cv2.imwrite(output_path, upscaled)
     
     return jsonify({
